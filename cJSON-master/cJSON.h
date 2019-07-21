@@ -29,16 +29,27 @@ extern "C"
 #endif
 
 /* cJSON Types: */
-#define cJSON_False 0
-#define cJSON_True 1
-#define cJSON_NULL 2
-#define cJSON_Number 3
-#define cJSON_String 4
-#define cJSON_Array 5
-#define cJSON_Object 6
-	
-#define cJSON_IsReference 256
-#define cJSON_StringIsConst 512
+// #define cJSON_False 0
+// #define cJSON_True 1
+// #define cJSON_NULL 2
+// #define cJSON_Number 3
+// #define cJSON_String 4
+// #define cJSON_Array 5
+// #define cJSON_Object 6
+
+enum {
+  cJSON_False, 
+  cJSON_True, 
+  cJSON_NULL, 
+  cJSON_Number, 
+  cJSON_String, 
+  cJSON_Array, 
+  cJSON_Object, 
+  cJSON_IsReference=256,
+  cJSON_StringIsConst=512
+  };
+//#define cJSON_IsReference 256
+//#define cJSON_StringIsConst 512
 
 /* The cJSON structure: */
 typedef struct cJSON {
@@ -54,6 +65,7 @@ typedef struct cJSON {
 	char *string;				/* The item's name string, if this item is the child of, or is in the list of subitems of an object. */
 } cJSON;
 
+// 为方便用户自由的管理内存，其使用了Hook技术让使用者可以自定义内存管理函数
 typedef struct cJSON_Hooks {
       void *(*malloc_fn)(size_t sz);
       void (*free_fn)(void *ptr);

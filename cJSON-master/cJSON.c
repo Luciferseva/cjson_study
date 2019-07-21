@@ -42,10 +42,34 @@ static int cJSON_strcasecmp(const char *s1,const char *s2)
 	for(; tolower(*s1) == tolower(*s2); ++s1, ++s2)	if(*s1 == 0)	return 0;
 	return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
-
+//自定义两个函数，参数和用法与库函数中的malloc和free一致
+/*　1、指针函数是指带指针的函数，即本质是一个函数。函数返回类型是某一类型的指针
+　　类型标识符 *函数名(参数表)
+　　int *f(x，y);
+　　
+　　首先它是一个函数，只不过这个函数的返回值是一个地址值。函数返回值必须用同类型的指针变量来接受，也就是说，指针函数一定有函数返回值，而且，在主调函数中，函数返回值必须赋给同类型的指针变量。
+　　表示：
+　　float *fun();
+　　float *p;
+　　p = fun(a);
+　　注意指针函数与函数指针表示方法的不同，千万不要混淆。最简单的辨别方式就是看函数名前面的指针*号有没有被括号（）包含，如果被包含就是函数指针，反之则是指针函数。
+　　2、函数指针是指向函数的指针变量，即本质是一个指针变量。
+　　int (*f) (int x); // 声明一个函数指针 
+	例如:int(*p)(int, int);
+	这个语句就定义了一个指向函数的指针变量 p。首先它是一个指针变量，所以要有一个“*”，即（*p）；
+	其次前面的 int 表示这个指针变量可以指向返回值类型为 int 型的函数；后面括号中的两个 int 表示这个指针变量可以指向有两个参数且都是 int 型的函数。
+	所以合起来这个语句的意思就是：
+	定义了一个指针变量 p，该指针变量可以指向返回值类型为 int 型，且有两个整型参数的函数。p 的类型为 int(*)(int，int)。
+　　f=func;  //将func函数的首地址赋给指针f 
+　　指向函数的指针包含了函数的地址，可以通过它来调用函数。声明格式如下：
+　　类型说明符 (*函数名)(参数)
+　　其实这里不能称为函数名，应该叫做指针的变量名。这个特殊的指针指向一个返回整型值的函数。指针的声明笔削和它指向函数的声明保持一致。
+　　指针名和指针运算符外面的括号改变了默认的运算符优先级。如果没有圆括号，就变成了一个返回整型指针的函数的原型声明。
+ 
+*/
 static void *(*cJSON_malloc)(size_t sz) = malloc;
 static void (*cJSON_free)(void *ptr) = free;
-
+/* 简单的理解就是复制字符串，返回新的字符串的指针 */
 static char* cJSON_strdup(const char* str)
 {
       size_t len;
@@ -57,19 +81,28 @@ static char* cJSON_strdup(const char* str)
       return copy;
 }
 
+/*
+  Hook 技术又叫做钩子函数，在系统没有调用该函数之前，钩子程序就先捕获该消息，钩子函数先得到控制权，这时钩子函数既可以加工处理（改变）该函数的执行行为，还可以强制结束消息的传递。简单来说，就是把系统的程序拉出来变成我们自己执行代码片段。
+  要实现钩子函数，有两个步骤：
+  1. 利用系统内部提供的接口，通过实现该接口，然后注入进系统（特定场景下使用）
+  2.动态代理（使用所有场景）
+ */
+
 void cJSON_InitHooks(cJSON_Hooks* hooks)
 {
+	// 如果未定义，则使用默认的malloc和free函数
     if (!hooks) { /* Reset hooks */
         cJSON_malloc = malloc;
         cJSON_free = free;
         return;
     }
-
+ 	// 定义了，则使用用户自定义的malloc和free函数
 	cJSON_malloc = (hooks->malloc_fn)?hooks->malloc_fn:malloc;
 	cJSON_free	 = (hooks->free_fn)?hooks->free_fn:free;
 }
 
 /* Internal constructor. */
+//内部构造函数
 static cJSON *cJSON_New_Item(void)
 {
 	cJSON* node = (cJSON*)cJSON_malloc(sizeof(cJSON));
@@ -78,6 +111,8 @@ static cJSON *cJSON_New_Item(void)
 }
 
 /* Delete a cJSON structure. */
+// 删除节点
+
 void cJSON_Delete(cJSON *c)
 {
 	cJSON *next;
@@ -93,6 +128,8 @@ void cJSON_Delete(cJSON *c)
 }
 
 /* Parse the input text to generate a number, and populate the result into item. */
+// parse_number函数功能：解析数字，对输入的文本生成一个数字，并填充结果项，传入参数有两
+// 个，这里先只关注num，返回值是一个字符串
 static const char *parse_number(cJSON *item,const char *num)
 {
 	double n=0,sign=1,scale=0;int subscale=0,signsubscale=1;
@@ -113,7 +150,9 @@ static const char *parse_number(cJSON *item,const char *num)
 	item->type=cJSON_Number;
 	return num;
 }
-
+//该函数的作用是返回比x大的最小的2的N次方数。
+//那么对于任何一个M，当它执行完以下的5步操作后，M的最左边为1的那位向右全部被赋值为1，因此，在最后return x+1 时，就会返回>=M最小的2的N次方数。
+//而最开始的–x，是因为当x本身就是一个2的N次方数时，返回值为x本身，所以需要减1来保证正确性。
 static int pow2gt (int x)	{	--x;	x|=x>>1;	x|=x>>2;	x|=x>>4;	x|=x>>8;	x|=x>>16;	return x+1;	}
 
 typedef struct {char *buffer; int length; int offset; } printbuffer;
@@ -144,6 +183,22 @@ static int update(printbuffer *p)
 }
 
 /* Render the number nicely from the given item into a string. */
+//将给定项中的数字很好地呈现为字符串
+/*
+ item是传进来的cjson object， num是起始数字。
+
+　　1. 解析正负， 用sign 标记， -1 是负
+
+　　2. 判断是不是0
+
+　　3. 判断小数点前面的数字， 也就是 - 3.2 e 5  ， 前面的3.2， 这个分为两部分， 小数点前和后
+
+　　4. e或者E，即科学计数的后半部分， 这个时候需要处理一下科学计数的部分是不是正或者负的问题， 用signsubscale 记录。
+
+　　5. 然后直接解析， 这里作者用了个小技巧， 作者直接在解析前面基数的部分， 解析出的是整数， 用scale记录， 最后用科学技术弄回来就OK了， 很巧妙。
+
+　　6. 然后返回数字， 解析出来一个Object。
+ */
 static char *print_number(cJSON *item,printbuffer *p)
 {
 	char *str=0;
@@ -173,7 +228,7 @@ static char *print_number(cJSON *item,printbuffer *p)
 	}
 	return str;
 }
-
+//除了转码，剩下的都比较简单，就是申一个字符串， 然后拷过去。
 static unsigned parse_hex4(const char *str)
 {
 	unsigned h=0;
@@ -194,27 +249,27 @@ static const char *parse_string(cJSON *item,const char *str)
 	const char *ptr=str+1;char *ptr2;char *out;int len=0;unsigned uc,uc2;
 	if (*str!='\"') {ep=str;return 0;}	/* not a string! */
 	
-	while (*ptr!='\"' && *ptr && ++len) if (*ptr++ == '\\') ptr++;	/* Skip escaped quotes. */
+	while (*ptr!='\"' && *ptr && ++len) if (*ptr++ == '\\') ptr++;	/* Skip escaped quotes. *///跳到字符串最后一个去
 	
-	out=(char*)cJSON_malloc(len+1);	/* This is how long we need for the string, roughly. */
-	if (!out) return 0;
+	out=(char*)cJSON_malloc(len+1);	/* This is how long we need for the string, roughly. *///预申请一个字符串空间大小的空间
+	if (!out) return 0; //申请不成功则退出　　
 	
-	ptr=str+1;ptr2=out;
+	ptr=str+1;ptr2=out;  //重新开始， ptr2设置成out开始的部位
 	while (*ptr!='\"' && *ptr)
 	{
-		if (*ptr!='\\') *ptr2++=*ptr++;
+		if (*ptr!='\\') *ptr2++=*ptr++; //正常情况下，直接跑下去就行
 		else
 		{
 			ptr++;
 			switch (*ptr)
-			{
+			{  												//特殊情况， 则断掉就行
 				case 'b': *ptr2++='\b';	break;
 				case 'f': *ptr2++='\f';	break;
 				case 'n': *ptr2++='\n';	break;
 				case 'r': *ptr2++='\r';	break;
 				case 't': *ptr2++='\t';	break;
-				case 'u':	 /* transcode utf16 to utf8. */
-					uc=parse_hex4(ptr+1);ptr+=4;	/* get the unicode char. */
+				case 'u':	 /* transcode utf16 to utf8. */   //unicode 则要单独处理
+					uc=parse_hex4(ptr+1);ptr+=4;	/* get the unicode char. *///parse hex 在后面， 就是把后四位都弄出来
 
 					if ((uc>=0xDC00 && uc<=0xDFFF) || uc==0)	break;	/* check for invalid.	*/
 
@@ -249,6 +304,7 @@ static const char *parse_string(cJSON *item,const char *str)
 }
 
 /* Render the cstring provided to an escaped version that can be printed. */
+//将提供的CString呈现为可打印的转义版本
 static char *print_string_ptr(const char *str,printbuffer *p)
 {
 	const char *ptr;char *ptr2,*out;int len=0,flag=0;unsigned char token;
@@ -309,6 +365,7 @@ static char *print_string_ptr(const char *str,printbuffer *p)
 static char *print_string(cJSON *item,printbuffer *p)	{return print_string_ptr(item->valuestring,p);}
 
 /* Predeclare these prototypes. */
+//预先声明这些原型。
 static const char *parse_value(cJSON *item,const char *value);
 static char *print_value(cJSON *item,int depth,int fmt,printbuffer *p);
 static const char *parse_array(cJSON *item,const char *value);
@@ -317,9 +374,11 @@ static const char *parse_object(cJSON *item,const char *value);
 static char *print_object(cJSON *item,int depth,int fmt,printbuffer *p);
 
 /* Utility to jump whitespace and cr/lf */
+//跳转空白和CR/LF的实用程序,这个非常好理解,  去除最前面的空格等字符
 static const char *skip(const char *in) {while (in && *in && (unsigned char)*in<=32) in++; return in;}
 
 /* Parse an object - create a new root, and populate. */
+//解析一个对象，创造一个新的根
 cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int require_null_terminated)
 {
 	const char *end=0;
@@ -331,6 +390,7 @@ cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int r
 	if (!end)	{cJSON_Delete(c);return 0;}	/* parse failure. ep is set. */
 
 	/* if we require null-terminated JSON without appended garbage, skip and then check for a null terminator */
+	//如果我们需要没有附加垃圾的以空结尾的JSON，请跳过，然后检查是否有空终止符
 	if (require_null_terminated) {end=skip(end);if (*end) {cJSON_Delete(c);ep=end;return 0;}}
 	if (return_parse_end) *return_parse_end=end;
 	return c;
@@ -339,6 +399,7 @@ cJSON *cJSON_ParseWithOpts(const char *value,const char **return_parse_end,int r
 cJSON *cJSON_Parse(const char *value) {return cJSON_ParseWithOpts(value,0,0);}
 
 /* Render a cJSON item/entity/structure to text. */
+//Render:使成为; 使变得; 使处于某状态; 给予; 提供; 回报; 递交; 呈献; 提交;
 char *cJSON_Print(cJSON *item)				{return print_value(item,0,1,0);}
 char *cJSON_PrintUnformatted(cJSON *item)	{return print_value(item,0,0,0);}
 
@@ -354,6 +415,7 @@ char *cJSON_PrintBuffered(cJSON *item,int prebuffer,int fmt)
 
 
 /* Parser core - when encountering text, process appropriately. */
+/* 解析器核心-遇到文本时，适当处理 */
 static const char *parse_value(cJSON *item,const char *value)
 {
 	if (!value)						return 0;	/* Fail on null. */
@@ -362,7 +424,7 @@ static const char *parse_value(cJSON *item,const char *value)
 	if (!strncmp(value,"true",4))	{ item->type=cJSON_True; item->valueint=1;	return value+4; }
 	if (*value=='\"')				{ return parse_string(item,value); }
 	if (*value=='-' || (*value>='0' && *value<='9'))	{ return parse_number(item,value); }
-	if (*value=='[')				{ return parse_array(item,value); }
+	if (*value=='[')				{ return parse_array(item,value); }//parse array
 	if (*value=='{')				{ return parse_object(item,value); }
 
 	ep=value;return 0;	/* failure. */
