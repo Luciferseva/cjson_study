@@ -43,7 +43,8 @@ static int cJSON_strcasecmp(const char *s1,const char *s2)
 	return tolower(*(const unsigned char *)s1) - tolower(*(const unsigned char *)s2);
 }
 //自定义两个函数，参数和用法与库函数中的malloc和free一致
-/*　1、指针函数是指带指针的函数，即本质是一个函数。函数返回类型是某一类型的指针
+/*　
+	1、指针函数是指带指针的函数，即本质是一个函数。函数返回类型是某一类型的指针
 　　类型标识符 *函数名(参数表)
 　　int *f(x，y);
 　　
@@ -767,6 +768,7 @@ cJSON *cJSON_CreateDoubleArray(const double *numbers,int count)	{int i;cJSON *n=
 cJSON *cJSON_CreateStringArray(const char **strings,int count)	{int i;cJSON *n=0,*p=0,*a=cJSON_CreateArray();for(i=0;a && i<count;i++){n=cJSON_CreateString(strings[i]);if(!i)a->child=n;else suffix_object(p,n);p=n;}return a;}
 
 /* Duplication */
+//(不必要的) 重复
 cJSON *cJSON_Duplicate(cJSON *item,int recurse)
 {
 	cJSON *newitem,*cptr,*nptr=0,*newchild;
